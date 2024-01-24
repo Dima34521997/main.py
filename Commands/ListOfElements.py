@@ -1,4 +1,5 @@
 import os
+import os
 import docx
 import pandas as pd
 from docx import Document
@@ -15,8 +16,8 @@ def export_to_word(dm: DataModel):
     """
     Экспортирует полученный список в формат Word
     """
-    # if data['Templates_Path'] != "":
-    #     path_to_template = data['Templates_Path']
+    # if dm.TemplatesPath != "":
+    #     path_to_template = dm.TemplatesPath
     # else:
     #     path_to_template = obshiy_perechen.prog_dir + "\\Шаблоны"
     #
@@ -26,8 +27,7 @@ def export_to_word(dm: DataModel):
     #     doc = Document(path_to_template + '\\Шаблон ПЭ Гражданский.docx')
     #doc = Document('C:\\Users\\EDN\\Desktop\\mainDocsUI\\Шаблоны\\Шаблон ПЭ.docx')
 
-    test = dm.data['Templates_Path']
-    doc = Document(dm.data['Templates_Path'] + '\\Шаблон ПЭ.docx')
+    doc = Document(dm.TemplatesPath + '\\Шаблон ПЭ.docx')
     style = doc.styles['Normal']
     font = style.font
     font.name = 'T-FLEX Type A'
@@ -36,16 +36,19 @@ def export_to_word(dm: DataModel):
     # Получаем итераторы таблиц в документе и строк в нем
     tables = iter(doc.tables)
     table = next(tables)
-
     rows = iter(table.rows)
+
     next(rows)
     row = next(rows)
     row_index = 1
+
+
+
     try:
         for char in sorted(dm.dict_chars.keys()):
             for component_index, component in enumerate(dm.dict_chars[char]):
                 component.split_name(shift_threshold=56)
-                component.split_desig(shift_treshold=53)
+                component.split_desig(shift_treshold=54)
 
                 # Вставка наименования категории компонентов
                 if component_index == 0:
@@ -61,7 +64,7 @@ def export_to_word(dm: DataModel):
                         row_index = 1
 
                     rows_len = len(table.rows) - 1
-                    if row_index + len(component.name) > rows_len or row_index + len(component.desig) > rows_len \
+                    if row_index + len(component.name) > rows_len or row_index + len(component.splt_desig) > rows_len \
                             or (isinstance(component.quantity, list) and row_index + len(component.quantity) > rows_len) or \
                             (isinstance(component.man, list) and row_index + len(component.man) > rows_len):
                         table = next(tables)
@@ -105,7 +108,7 @@ def export_to_word(dm: DataModel):
 
                 # Вставка строки в документ и ее оформление
                 rows_len = len(table.rows) - 1
-                if row_index + len(component.name) - 1 > rows_len or row_index + len(component.desig) - 1 > rows_len \
+                if row_index + len(component.name) - 1 > rows_len or row_index + len(component.splt_desig) - 1 > rows_len \
                         or (
                         isinstance(component.quantity, list) and row_index + len(component.quantity) - 1 > rows_len) or \
                         (isinstance(component.man, list) and row_index + len(component.man) - 1 > rows_len):
@@ -124,10 +127,10 @@ def export_to_word(dm: DataModel):
 
                 while True:
                     try:
-                        row.cells[0].text = str(component.desig[0])
+                        row.cells[0].text = str(component.splt_desig[0])
                         row.cells[0].paragraphs[0].alignment = docx.enum.text.WD_ALIGN_PARAGRAPH.CENTER
 
-                        del component.desig[0]
+                        del component.splt_desig[0]
                     except IndexError:
                         pass
 
@@ -139,7 +142,7 @@ def export_to_word(dm: DataModel):
                     except IndexError:
                         pass
 
-                    if (char == 'C' or char == 'R') and component.man.find("ТУ", 0) == -1:
+                    if (char == 'C' or char == 'R') and 'ТУ' not in component.man:
                         try:
                             row.cells[3].text = str(component.manpnb)
                             row.cells[3].paragraphs[0].alignment = docx.enum.text.WD_ALIGN_PARAGRAPH.CENTER
@@ -148,7 +151,7 @@ def export_to_word(dm: DataModel):
                         except IndexError:
                             pass
 
-                    if component.name != [] or component.desig != []:
+                    if component.name != [] or component.splt_desig != []:
                         try:
                             row = next(rows)
                             row_index += 1
@@ -192,14 +195,7 @@ def export_to_word(dm: DataModel):
 
     doc = DocxTemplate(save_dir + new_name + ' ПЭ (без полей).docx')
 
-    # context = {"DocName": new_name + ' ПЭ', "PervPrim": new_name, "Razrab": data['Razrab'],
-    #            "Proveril": data['Proveril'], "N_control": data["N_control"], "Utverdil": data['Utverdil'],
-    #            "DeviceName": deviceName, "PlateName": new_name.split(' ')[0]}
-
-    context = {"DocName": 'ХРЮЧЕВО' + ' ПЭ', "PervPrim": new_name, "Razrab": 'МСЬЕ ИНДУСИО',
-               "Proveril": 'СКВИРТОСЛАВ', "N_control": 'ПОЛИНА', "Utverdil": 'El пchulon',
-               "DeviceName": deviceName, "PlateName": new_name.split(' ')[0]}
-    doc.render(context)
+    doc.render(dm.data_for_first_page)
 
     # if civilian:
     #     new_name += ' гражданский'
@@ -209,8 +205,10 @@ def export_to_word(dm: DataModel):
 
 def Execute(dm: DataModel):
     for i in range(len(dm.files)):
+
         print(f"\nФормирую {i+1}-й ПЭ\n"
               f"=============")
+
 
         DataParser.test = True
 

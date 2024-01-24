@@ -1,10 +1,12 @@
 import pandas as pd
 from PIL import ImageFont
 
+from DataModel import DataModel as dm
+
 font = ImageFont.truetype('T-FLEXA.TTF', 12)
 
 
-class Element:
+class Element():
     def __init__(self, ser: pd.Series = None):
         if ser is not None:
             self.ser = ser
@@ -22,7 +24,8 @@ class Element:
             self.comment = ser['Примечание']
             self.module = ""
 
-            self.name = self._make_name()
+            self.name = self.make_name()
+            self.splt_desig = []
 
             if '0' not in self.body and '1' not in self.body and self.body != '':
                 self.body = "«" + self.body + "»"
@@ -39,43 +42,68 @@ class Element:
     def __repr__(self):
         return f"{self.name} [{self.quantity}] [{self.module}]"
 
-    def _make_name(self):
+
+    def make_name_for_C(self):
+        """
         # Для R и C Номинал и Погрешность переносятся вместе, поэтому сохраняем их в одну строку
+        :return:
+        """
         val_tol = self.val + " " + self.tol
         name = ''
-
-        # Формирование наименований
-        if self.char == 'C':
-            if self.man.find("ТУ", 0) != -1:
-                if self.tke != '':
-                    name = f"{self.rem} {self.pv} - {val_tol} - {self.tke} {self.man}"
-                else:
-                    name = f"{self.rem} {self.pv} - {val_tol} {self.man}"
+        if 'ТУ' in self.man:
+            if self.tke:
+                name = f'{self.rem} {self.pv} - {val_tol} - {self.tke} {self.man}'
             else:
-                if self.tke != '':
-                    name = f"{self.rem} {self.body} {self.tke}  - {self.pv} - {val_tol}, {self.man}"
-                else:
-                    name = f"{self.rem} {self.body} - {self.pv} - {val_tol}, {self.man}"
-        if self.char == 'R':
-            if self.man.find("ТУ", 0) != -1:
-                if self.tke != '':
-                    name = f"{self.rem} - {self.pv} - {val_tol} - {self.tke} {self.man}"
-                else:
-                    name = f"{self.rem} - {self.pv} - {val_tol} {self.man}"
+                name = f'{self.rem} {self.pv} - {val_tol} {self.man}'
+        else:
+            if self.tke:
+                name = f'{self.rem} {self.body} {self.tke}  - {self.pv} - {val_tol}, {self.man}'
             else:
-                name = f"{self.rem} {self.body} - {val_tol}, {self.man}"
-        # Для прочих компонентов
-        if self.char != 'C' and self.char != 'R':
-            if self.man.find("ТУ", 0) != -1:
-                name = f"{self.manpnb} {self.man}"
-            else:
-                name = f"{self.manpnb}, {self.man}"
-            if self.manpnb == '':
-                if self.man.find("ТУ", 0) != -1:
-                    name = f"{self.val} {self.man}"
-                else:
-                    name = f"{self.val}, {self.man}"
+                name = f'{self.rem} {self.body} - {self.pv} - {val_tol}, {self.man}'
         return name
+
+
+    def make_name_for_R(self):
+        """
+        Для R и C Номинал и Погрешность переносятся вместе, поэтому сохраняем их в одну строку
+        :return:
+        """
+        val_tol = self.val + " " + self.tol
+        name = ''
+        if 'ТУ' in self.man:
+            if self.tke:
+                name = f'{self.rem} - {self.pv} - {val_tol} - {self.tke} {self.man}'
+            else:
+                name = f'{self.rem} - {self.pv} - {val_tol} {self.man}'
+        else:
+            name = f'{self.rem} {self.body} - {val_tol}, {self.man}'
+        return name
+
+    def make_name_for_other_elements(self):
+        if 'ТУ' in self.man:
+            name = f'{self.manpnb} {self.man}'
+        else:
+            name = f'{self.manpnb}, {self.man}'
+        if self.manpnb == '':
+            if 'ТУ' in self.man:
+                name = f'{self.val} {self.man}'
+            else:
+                name = f'{self.val}, {self.man}'
+        return name
+
+
+    def make_name(self):
+        """
+        Формирование наименований
+        :return:
+        """
+        if self.char == 'C':
+            return self.make_name_for_C()
+        elif self.char == 'R':
+            return self.make_name_for_R()
+        else:
+            return self.make_name_for_other_elements()
+
 
     def split_desig(self, shift_treshold: int):
         """
@@ -84,8 +112,10 @@ class Element:
         :param shift_treshold: Порог количества символов для переноса
         :return: Лист позиций. Каждый новый элемент на новой строке
         """
-        #shift_treshold = 53
-        splitted_desig = self.desig.split(", ")
+        shift_treshold = 53
+        splitted_desig = self.desig.split(', ')
+        #splitted_desig = splitted_desig1.split(", ")
+
         for i in range(len(splitted_desig)):
             next_i = i + 1
             # Проверка существования следующей позиции
@@ -105,7 +135,7 @@ class Element:
             if next_i < len(splitted_desig):
                 splitted_desig[i] += ","
 
-        self.desig = splitted_desig
+        self.splt_desig = splitted_desig
 
     def split_name(self, shift_threshold, cat_name='', one_man=''):
         val_tol = self.val + " " + self.tol
@@ -287,8 +317,8 @@ def create_name(df: pd.DataFrame, index: int, shift_treshold: int):
                     name2 = f"{man}"
                 else:
                     name = f"{rem} {body} - {pv} - {val_tol}, {man}"
-    elif desig.find("R", 0) != -1:
-        if man.find("ТУ", 0) != -1:
+    elif 'R' in desig:
+        if 'ТУ' in desig:
             if tke != '':
                 if len(f"{rem} - {pv} - {val_tol}") > shift_treshold:
                     name = f"{rem} - {pv} -"
@@ -329,8 +359,8 @@ def create_name(df: pd.DataFrame, index: int, shift_treshold: int):
             else:
                 name = f"{rem} {body} - {val_tol}, {man}"
     # Для прочих компонентов
-    if desig.find("C", 0) == -1 and desig.find("R", 0) == -1:
-        if man.find("ТУ", 0) != -1:
+    if 'C' not in desig and 'R' not in desig:
+        if 'ТУ' in man:
             if len(f"{manpnb} {man}") > shift_treshold:
                 name = f"{manpnb}"
                 name2 = f"{man}"
@@ -380,9 +410,9 @@ def create_names_vp(df: pd.DataFrame, index: int, shift_treshold: int):
         body = "\"" + body + "\""
 
     # Формирование наименований
-    if desig.find("C", 0) != -1:
-        if man.find("ТУ", 0) != -1:
-            if tke != '':
+    if 'C' in desig:
+        if "ТУ" in man:
+            if tke:
                 # Костыль для некоторых корпусов
                 if '0' not in body and 'М' not in body:
                     body = ''
@@ -407,7 +437,7 @@ def create_names_vp(df: pd.DataFrame, index: int, shift_treshold: int):
                 else:
                     name = f"{rem} {body} - {pv} - {val_tol}"
         else:
-            if tke != '':
+            if tke:
                 if len(f"{rem} {body} {tke} - {pv}") > shift_treshold:
                     name = f"{rem} {body} {tke} -"
                     name2 = f"- {pv} - {val_tol}"
@@ -422,9 +452,9 @@ def create_names_vp(df: pd.DataFrame, index: int, shift_treshold: int):
                     name2 = f"- {val_tol}"
                 else:
                     name = f"{rem} {body} - {pv} - {val_tol}"
-    elif desig.find("R", 0) != -1:
-        if man.find("ТУ", 0) != -1:
-            if tke != '':
+    elif 'R' in desig:
+        if 'ТУ' in man:
+            if tke:
                 if len(f"{rem} - {pv} - {val_tol}") > shift_treshold:
                     name = f"{rem} - {pv} -"
                     name2 = f"- {val_tol} - {tke}"
@@ -452,13 +482,13 @@ def create_names_vp(df: pd.DataFrame, index: int, shift_treshold: int):
             else:
                 name = f"{rem} {body} - {val_tol}"
     # Для прочих компонентов
-    if desig.find("C", 0) == -1 and desig.find("R", 0) == -1:
-        if man.find("ТУ", 0) != -1:
-            name = f"{manpnb}"
+    if "C" not in desig and "R" not in desig:
+        if 'ТУ' in man:
+            name = manpnb
         else:
-            name = f"{manpnb}"
+            name = manpnb
         if manpnb == '':
-            name = f"{val}"
+            name = val
     return [name, name2]
 
 
@@ -472,16 +502,9 @@ def only_name(path: str) -> str:
     return path[path.rfind('/') + 1:]
 
 
-def data_change(self):
-    '''
-    Текст из соответствующих текстбоксов вставляет в значения
-    словаря data
-    '''
-    self.dm.data['Project_Name'] = 'TEST'
-    self.dm.data['Templates_Path'] = self.textbox_PathToTemplates.copy()
-
-
 def path_for_win(path: str) -> str:
     '''Заменяет слэши в строке с адресом на бекслэши'''
     path = path.replace('/', '\\')
     return path
+
+

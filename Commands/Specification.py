@@ -10,17 +10,17 @@ from docxtpl import DocxTemplate
 # Мои импорты
 import DataParser
 import Editors as ed
+import DataModel
+import Constants
 
 data: json
 
 # Генератор Спецификации
-cat_names_plural = ed.cat_names_plural
-cat_names_singular = ed.cat_names_singular
 
-dfs = []  # DataFrame'ы с изначальными данными
-dict_chars = {}  # Словарь комбинированных изначальных DataFrame'ов с их буквенными обозначениями
-final_df = []  # Список финальных DataFrame'ов на вставку в документ(-ы)
-names_df = {}  # Словарь с формированными строками для вставки в документы
+# dfs = []  # DataFrame'ы с изначальными данными
+# dict_chars = {}  # Словарь комбинированных изначальных DataFrame'ов с их буквенными обозначениями
+# final_df = []  # Список финальных DataFrame'ов на вставку в документ(-ы)
+# names_df = {}  # Словарь с формированными строками для вставки в документы
 
 files = []  # Массив названий файлов для обработки
 input_files_folder: str  # Путь к файлам
@@ -47,26 +47,28 @@ def slpit_to_format(string: str, shift_threshold):
 
     return paste_string
 
-def export_to_word():
+def export_to_word(dm):
     """
     Экспортирует полученный список в формат Word
     """
-    if data['Templates_Path'] != "":
-        path_to_template = data['Templates_Path']
-    else:
-        path_to_template = obshiy_perechen.prog_dir + "\\Шаблоны"
 
-    if not civ:
-        doc = Document(path_to_template + '\\Шаблон СП.docx')
-    else:
-        doc = Document(path_to_template + '\\Шаблон СП Гражданский.docx')
+    # if data['Templates_Path'] != "":
+    #     path_to_template = data['Templates_Path']
+    # else:
+    #     path_to_template = DataParser.prog_dir + "\\Шаблоны"
+    #
+    # if not civ:
+    #     doc = Document(path_to_template + '\\Шаблон СП.docx')
+    # else:
+    #     doc = Document(path_to_template + '\\Шаблон СП Гражданский.docx')
 
+    doc = Document(dm.TemplatesPath + '\\Шаблон СП.docx')
     style = doc.styles['Normal']
     font = style.font
     font.name = 'T-FLEX Type A'
     font.size = Pt(12)
 
-    module = dict_chars['C'][0].module
+    module = dm.dict_chars['C'][0].module
 
     # Получаем итератори таблиц в документе и строк в нем
     tables = iter(doc.tables)
@@ -243,8 +245,8 @@ def export_to_word():
             docx.enum.text.WD_UNDERLINE.SINGLE
 
         chip_pos = 1
-        for char in sorted(dict_chars.keys()):
-            for chip_index, chip in enumerate(dict_chars[char]):
+        for char in sorted(dm.dict_chars.keys()):
+            for chip_index, chip in enumerate(dm.dict_chars[char]):
                 chip_pos += 1
                 chip.split_name(shift_threshold=32)
                 chip.split_desig(shift_treshold=59)
@@ -273,8 +275,8 @@ def export_to_word():
                         row_index = 1
 
                     cat_name = ''
-                    if len(dict_chars[char]) > 1:
-                        for desig, d_cat_name in cat_names_plural.items():
+                    if len(dm.dict_chars[char]) > 1:
+                        for desig, d_cat_name in Constants.cat_names_plural.items():
                             if char == desig:
                                 cat_name = d_cat_name
 
@@ -298,7 +300,7 @@ def export_to_word():
                             row_index = 1
                     # Если компонент один
                     else:
-                        for desig, d_cat_name in cat_names_singular.items():
+                        for desig, d_cat_name in Constants.cat_names_singular.items():
                             if char == desig:
                                 cat_name = d_cat_name
 
@@ -395,37 +397,28 @@ def export_to_word():
     return new_name.split(' ')[0]
 
 
-def execute(input_files: list, is_civ: bool, type: str):
-    global dfs, files, dict_chars, prim_not_install, prim_cats, final_df, data, civ, components_one_manuf_categories
-    civ = is_civ
-    files = input_files
-
-    i = 1
-    for file in files:
+def Execute(dm: DataModel):
+    for i in range(len(dm.files)):
         print(f"\nФормирую {i}-ю СП\n"
               f"=============")
-        i += 1
-        dfs = []
-        dict_chars = {}
 
         DataParser.test = True
 
         DataParser.no_perechen = 1
+
         print("Получаю данные из перечней элементов...")
-        dfs, files = DataParser.get_dfs(dict_chars, [file])
+        DataParser.get_dfs(dm, i)
         print("Формирую общую таблицу элементов...")
-        dict_chars, prim_not_install, prim_cats, one_man_cats \
-            = DataParser.get_components(dict_chars, dfs, [file])
+        DataParser.get_components(dm)
         print("Проверяю примечения на регулирование...")
-        dict_chars = DataParser.split_to_adjustable(dict_chars)
+        DataParser.split_to_adjustable(dm)
 
         if str == "specification":
             print("Комбинирую компоненты...")
-            dict_chars = DataParser.combine_chips_in_module(dict_chars)
-
+            DataParser.combine_chips_in_module(dm.dict_chars)
             print("Комбинирую модули...")
-            dict_chars = DataParser.combine_modules(dict_chars)
+            DataParser.combine_modules(dm.dict_chars)
         print("Вставляю готовый перечень в шаблон...")
-        export_to_word()
+        export_to_word(dm)
     print("\n=============\n"
           "Готово!\n\n\n")

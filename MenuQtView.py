@@ -10,12 +10,14 @@ from PySide6.QtWidgets import (QPushButton,
 
 # region Наши импорты
 import Editors as ed
+
 from Commands import ListOfElements
+from Commands import Specification
+from Commands import PurchasedItems
+
 from DataModel import *
 import DataModel as dm
 # endregion
-
-
 
 data = 1
 
@@ -30,26 +32,61 @@ class MainWindow(QtWidgets.QWidget):
 
         # region Создание кнопок и привязка к ним функций-обработчиков
         self.button_P = QPushButton('Перечень элементов')
+        self.button_P.setStyleSheet('QPushButton {background-color: #fad2d5; '
+                                    'border-color: gray; border style: outset;'
+                                    'border-width: 2px; border-radius: 7px;'
+                                    'border-color: beige; font: normal 15px;'
+                                    'min-width: 14em; padding: 13px;}')
+
+        self.button_P.setMaximumWidth(400)
+        self.button_P.setMinimumWidth(300)
+        #self.button_P.setStyleSheet('QPushButton {border-color: white}')
         self.button_P.clicked.connect(self.button_P_clicked)
 
         self.button_SP = QPushButton('Спецификация')
+        self.button_SP.setStyleSheet('QPushButton {background-color: #fad2d9; '
+                                     'border-color: gray; border style: outset;'
+                                     'border-width: 2px; border-radius: apx;'
+                                     'border-color: beige; font: normal 15px;'
+                                     'min-width: 14em; padding: 13px;}')
+
+        self.button_SP.setMaximumWidth(400)
+        self.button_SP.setMinimumWidth(300)
         self.button_SP.clicked.connect(self.button_SP_clicked)
 
         self.button_VP = QPushButton('Покупная ведомость')
+        self.button_VP.setStyleSheet('QPushButton {background-color: #fad2df; '
+                                     'border-color: gray; border style: outset;'
+                                     'border-width: 2px; border-radius: 7px;'
+                                     'border-color: beige; font: normal 15px;'
+                                     'min-width: 14em; padding: 13px;}')
+        self.button_VP.setMaximumWidth(200)
+        self.button_VP.setMinimumWidth(300)
         self.button_VP.clicked.connect(self.button_VP_clicked)
 
         self.button_Path = QPushButton('Путь к шаблонам')
         self.button_Path.clicked.connect(self.path_to_templates)
 
         self.button_SelectBOM = QPushButton('Выбрать BOM')
+        self.button_SelectBOM.setStyleSheet('QPushButton {background-color: #9fede9; '
+                                            'border-color: #d2faee; border style: solid;'
+                                            'border-width: 6px; border-radius: 7px;'
+                                            'border-color: beige; font: normal 14px;'
+                                            'min-width: 14em; padding: 15px;}')
         self.button_SelectBOM.clicked.connect(self.select_BOM)
 
         self.button_Clear = QPushButton('Очистить')
+        self.button_Clear.setStyleSheet('QPushButton {background-color: #9fede9; '
+                                        'border-color: gray; border style: solid;'
+                                        'border-width: 2px; border-radius: 7px;'
+                                        'border-color: beige; font: normal 14px;'
+                                        'min-width: 14em; padding: 15px;}')
         self.button_Clear.clicked.connect(self.button_Clear_clicked)
         # endregion
 
         # region Создание лейблов
         self.label_Developed = QLabel('Разработал')
+
         self.label_ProjectName = QLabel('Название проекта')
         self.label_PathToTemplates = QLabel('Путь к шаблонам')
         self.label_Verify = QLabel('Проверил')
@@ -58,13 +95,27 @@ class MainWindow(QtWidgets.QWidget):
         # endregion
 
         # region Создание текстбоксов
-        self.textbox_Developed = QLineEdit('разработал...')
-        self.textbox_ProjectName = QLineEdit("название проекта...")
-        self.textbox_PathToTemplates = QLineEdit(" путь к шаблонам...")
-        self.textbox_Verify = QLineEdit("проверил...")
+        self.textbox_Developed = QLineEdit('разработал...', alignment=Qt.AlignCenter)
+        self.textbox_Developed.setStyleSheet('QLineEdit {color: gray;}')
+
+        self.textbox_ProjectName = QLineEdit("название проекта...", alignment=Qt.AlignCenter)
+        self.textbox_ProjectName.setStyleSheet('QLineEdit {color: gray;}')
+
+        self.textbox_PathToTemplates = QLineEdit(" путь к шаблонам...", alignment=Qt.AlignCenter)
+        self.textbox_PathToTemplates.setStyleSheet('QLineEdit {color: gray;}')
+
+        self.textbox_Verify = QLineEdit("проверил...", alignment=Qt.AlignCenter)
+        self.textbox_Verify.setStyleSheet('QLineEdit {color: gray;}')
+
         self.textbox_Control = QLineEdit("нормоконтроль...", alignment=Qt.AlignCenter)
-        self.textbox_Approve = QLineEdit("утвердил...")
+        self.textbox_Control.setStyleSheet('QLineEdit {color: gray;}')
+
+        self.textbox_Approve = QLineEdit("утвердил...", alignment=Qt.AlignCenter)
+        self.textbox_Approve.setStyleSheet('QLineEdit {color: gray;}')
+
         self.textbox_AddedBOMs = QTextEdit(self)
+        self.textbox_AddedBOMs.setMinimumWidth(400)
+
         # endregion
 
         self.UI()
@@ -78,9 +129,9 @@ class MainWindow(QtWidgets.QWidget):
         # region Добавление элементов в сетку окна
 
         # Кнопки
-        grid.addWidget(self.button_P, 2, 1)
-        grid.addWidget(self.button_SP, 3, 1)
-        grid.addWidget(self.button_VP, 4, 1)
+        grid.addWidget(self.button_P, 2, 1, alignment=Qt.AlignCenter)
+        grid.addWidget(self.button_SP, 3, 1, alignment=Qt.AlignCenter)
+        grid.addWidget(self.button_VP, 4, 1, alignment=Qt.AlignCenter)
         grid.addWidget(self.button_Path, 7, 0)
         grid.addWidget(self.button_SelectBOM, 0, 0)
         grid.addWidget(self.button_Clear, 6, 0)
@@ -103,26 +154,33 @@ class MainWindow(QtWidgets.QWidget):
 
         # endregion
 
-    def data_change(self):
-        '''
-        Текст из соответствующих текстбоксов вставляет в значения
-        словаря data
-        '''
-        self.dm.data['Project_Name'] = 'TEST'
-        self.dm.data['Templates_Path'] = self.textbox_PathToTemplates.copy()
-
     # region Обработка кнопок
+
+    def parse_labels(self):
+        '''Забирает из текстбоксов ввведенные значения'''
+        self.dm.data_for_first_page['ProjectName'] = self.textbox_ProjectName.text()
+        self.dm.data_for_first_page['Dev'] = self.textbox_Developed.text()
+        self.dm.data_for_first_page['Verify'] = self.textbox_Verify.text()
+        self.dm.data_for_first_page['NControl'] = self.textbox_Control.text()
+        self.dm.data_for_first_page['Approve'] = self.textbox_Approve.text()
+
     def button_P_clicked(self):
         """Создать перечень элементов"""
 
         if self.dm.files:
+            self.parse_labels()
             ListOfElements.Execute(self.dm)
         else:
-            pass
+            print('Ничего не выбрано!')
 
     def button_SP_clicked(self):
-        print('Нажата')
+        """Создать cпецификацию"""
 
+        if self.dm.files:
+            self.parse_labels()
+            Specification.Execute(self.dm)
+        else:
+            print('Ничего не выбрано!')
     def button_VP_clicked(self):
         print('Нажата')
 
@@ -130,10 +188,8 @@ class MainWindow(QtWidgets.QWidget):
         self.textbox_PathToTemplates.clear()
         selected_path = ed.path_for_win(QFileDialog.getExistingDirectory(self))
         self.textbox_PathToTemplates.insert(selected_path)
-        # self.data_change()
-        self.dm.data['Templates_Path'] = selected_path
-        print(f'selected_path {selected_path}')
-        print(self.dm.data)
+        self.dm.TemplatesPath = selected_path
+
 
     def select_BOM(self):
         """Открывает диалоговое окно с файловой системой для выбора BOM"""
@@ -154,18 +210,3 @@ class MainWindow(QtWidgets.QWidget):
         self.textbox_AddedBOMs.clear()
         self.dm.counter = 1
         self.dm.files.clear()
-
-    # @staticmethod
-    # def onModified(event):
-    #     data['Templates_Path'] = 'C:\\Users\\EDN\\PycharmProjects\\mainDocsUI\\Шаблоны\\\\Шаблон ПЭ.docx'
-    #     data['Project_Name'] = 'ХРЮЧЕВО'
-    #
-    #     data['Razrab'] = 'МСЬЕ ИНДУСИО'
-    #     data['Proveril'] = 'KEBAB'
-    #     data['N_control'] = 'ПОЛИНА'
-    #     data['Utverdil'] = 'КТО-НИБУДЬ'
-    #
-    #     with open("Profile.json", "w") as f:
-    #         json.dump(data, f, ensure_ascii=False, indent=4)
-
-    # endregion
